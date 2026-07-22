@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>解压音效馆 · AI多智能体音效疗愈平台</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;min-height:100vh;overflow-x:hidden}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  color:#4a3f6b;
+  background:linear-gradient(135deg,#e8f0fe 0%,#f0e8ff 30%,#fef6f0 60%,#e8f4f8 100%);
+  background-attachment:fixed;min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;
+  padding:20px 16px 40px;position:relative
+}
+#particle-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.container{position:relative;z-index:1;max-width:1100px;width:100%}
+.glass{
+  background:rgba(255,255,255,0.35);
+  backdrop-filter:blur(20px) saturate(1.2);
+  -webkit-backdrop-filter:blur(20px) saturate(1.2);
+  border:1px solid rgba(255,255,255,0.5);
+  border-radius:20px;
+  box-shadow:0 8px 32px rgba(150,120,200,0.08),0 2px 8px rgba(255,255,255,0.3)
+}
+header{text-align:center;padding:32px 20px 20px;margin-bottom:20px}
+header h1{
+  font-size:2rem;font-weight:600;
+  background:linear-gradient(135deg,#7b6baa,#a88ec4,#7ba8c4);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  letter-spacing:2px
+}
+header p{font-size:.9rem;color:#8a7daa;margin-top:4px;letter-spacing:1px}
+.emotion-section{padding:20px 24px 24px;margin-bottom:20px}
+.emotion-section .label{font-size:.85rem;color:#8a7daa;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.emotion-section .label .emoji{font-size:1.1rem}
+.emotion-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.emotion-tag{
+  padding:6px 16px;border-radius:20px;cursor:pointer;
+  font-size:.85rem;color:#6a5a8a;
+  background:rgba(255,255,255,0.5);
+  border:1px solid rgba(180,160,210,0.3);
+  transition:all .3s ease;user-select:none
+}
+.emotion-tag:hover{background:rgba(255,255,255,0.75);border-color:#b8a8d8;transform:translateY(-1px)}
+.emotion-tag.active{
+  background:linear-gradient(135deg,#b8a8e0,#a8c8e8);color:#fff;
+  border-color:transparent;box-shadow:0 4px 12px rgba(150,120,200,0.2)
+}
+.emotion-input-row{display:flex;gap:10px;align-items:center}
+.emotion-input-row input{
+  flex:1;padding:10px 16px;border-radius:14px;border:none;
+  background:rgba(255,255,255,0.6);font-size:.9rem;color:#4a3f6b;outline:none;
+  transition:box-shadow .3s
+}
+.emotion-input-row input:focus{box-shadow:0 0 0 2px rgba(168,142,196,0.3)}
+.emotion-input-row input::placeholder{color:#b0a0c8}
+.btn-recommend{
+  padding:10px 22px;border-radius:14px;border:none;
+  background:linear-gradient(135deg,#b8a8e0,#8ab8d8);
+  color:#fff;font-size:.9rem;cursor:pointer;
+  transition:all .3s ease;white-space:nowrap;font-weight:500;letter-spacing:.5px
+}
+.btn-recommend:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(150,120,200,0.25)}
+.btn-recommend:active{transform:translateY(0)}
+.workspace{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+@media(max-width:768px){.workspace{grid-template-columns:1fr}}
+.mixer-panel{padding:20px 20px 16px}
+.mixer-panel .panel-title{font-size:.85rem;color:#8a7daa;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.mixer-panel .panel-title .emoji{font-size:1rem}
+.track-list{display:flex;flex-direction:column;gap:10px}
+.track-item{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 12px;border-radius:14px;background:rgba(255,255,255,0.3);transition:background .3s
+}
+.track-item:hover{background:rgba(255,255,255,0.5)}
+.track-item.playing{background:rgba(168,142,196,0.12)}
+.track-toggle{
+  width:20px;height:20px;border-radius:6px;border:2px solid #d0c0e0;cursor:pointer;
+  background:transparent;position:relative;flex-shrink:0;transition:all .3s
+}
+.track-toggle.on{background:#b8a8e0;border-color:#b8a8e0}
+.track-toggle.on::after{
+  content:'';position:absolute;left:5px;top:2px;
+  width:6px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)
+}
+.track-name{font-size:.82rem;color:#5a4a7a;width:56px;flex-shrink:0}
+.track-slider{flex:1;height:4px;-webkit-appearance:none;appearance:none;background:linear-gradient(90deg,#d0c0e0,#b8a8e0);border-radius:2px;outline:none;cursor:pointer}
+.track-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#a88ec4;
+  border:2px solid rgba(255,255,255,0.8);box-shadow:0 2px 6px rgba(0,0,0,0.1);cursor:pointer;transition:transform .2s
+}
+.track-slider::-webkit-slider-thumb:hover{transform:scale(1.15)}
+.track-volume{font-size:.75rem;color:#9a8ab0;width:32px;text-align:right}
+.ai-panel{padding:20px 20px 16px;display:flex;flex-direction:column}
+.ai-panel .panel-title{font-size:.85rem;color:#8a7daa;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.ai-panel .panel-title .emoji{font-size:1rem}
+.ai-chat{flex:1;min-height:220px;max-height:320px;overflow-y:auto;padding:8px;margin-bottom:10px;display:flex;flex-direction:column;gap:10px}
+.ai-chat::-webkit-scrollbar{width:4px}
+.ai-chat::-webkit-scrollbar-track{background:transparent}
+.ai-chat::-webkit-scrollbar-thumb{background:#d0c0e0;border-radius:2px}
+.ai-message{
+  padding:10px 14px;border-radius:14px;background:rgba(255,255,255,0.5);
+  font-size:.85rem;line-height:1.6;color:#4a3f6b;max-width:92%;animation:fadeInUp .5s ease
+}
+.ai-message.system{background:rgba(255,255,255,0.3);font-style:italic;color:#8a7daa;font-size:.8rem;text-align:center;max-width:100%}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.ai-message .avatar{
+  display:inline-block;width:24px;height:24px;line-height:24px;text-align:center;border-radius:50%;
+  background:linear-gradient(135deg,#b8a8e0,#8ab8d8);color:#fff;font-size:.7rem;margin-right:6px;vertical-align:middle;flex-shrink:0
+}
+.ai-message .text{display:inline}
+.ai-typing{display:flex;gap:4px;padding:10px 14px;align-items:center}
+.ai-typing span{width:6px;height:6px;border-radius:50%;background:#c0b0d0;animation:typing 1.4s infinite}
+.ai-typing span:nth-child(2){animation-delay:.2s}
+.ai-typing span:nth-child(3){animation-delay:.4s}
+@keyframes typing{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-4px)}}
+.duration-panel{padding:16px 24px 20px;margin-bottom:20px}
+.duration-panel .panel-title{font-size:.85rem;color:#8a7daa;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.duration-panel .panel-title .emoji{font-size:1rem}
+.duration-options{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.duration-opt{
+  padding:6px 14px;border-radius:16px;cursor:pointer;font-size:.82rem;color:#6a5a8a;
+  background:rgba(255,255,255,0.5);border:1px solid rgba(180,160,210,0.3);
+  transition:all .3s ease;user-select:none
+}
+.duration-opt:hover{background:rgba(255,255,255,0.75);border-color:#b8a8d8}
+.duration-opt.active{
+  background:linear-gradient(135deg,#b8a8e0,#a8c8e8);color:#fff;
+  border-color:transparent;box-shadow:0 4px 12px rgba(150,120,200,0.2)
+}
+.duration-custom-row{display:flex;gap:10px;align-items:center}
+.duration-custom-row input{
+  width:80px;padding:8px 12px;border-radius:12px;border:none;
+  background:rgba(255,255,255,0.6);font-size:.85rem;color:#4a3f6b;outline:none;text-align:center;
+  transition:box-shadow .3s
+}
+.duration-custom-row input:focus{box-shadow:0 0 0 2px rgba(168,142,196,0.3)}
+.duration-custom-row .unit{font-size:.8rem;color:#8a7daa}
+.duration-custom-row .hint{font-size:.75rem;color:#b0a0c8;margin-left:6px}
+.timer-display{
+  text-align:center;padding:12px 0 4px;font-size:.85rem;color:#8a7daa;
+  display:flex;align-items:center;justify-content:center;gap:16px;
+  border-top:1px solid rgba(180,160,210,0.15);margin-top:10px;padding-top:12px
+}
+.timer-display .timer-num{
+  font-size:1.5rem;font-weight:600;color:#6a5a8a;
+  background:linear-gradient(135deg,#7b6baa,#a88ec4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  letter-spacing:1px
+}
+.timer-display .timer-label{font-size:.75rem;color:#b0a0c8}
+.timer-display .timer-col{display:flex;flex-direction:column;align-items:center;gap:2px}
+.controls{display:flex;justify-content:center;gap:16px;padding:16px 20px 20px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.btn-play{
+  padding:12px 40px;border-radius:30px;border:none;
+  background:linear-gradient(135deg,#b8a8e0,#8ab8d8);color:#fff;font-size:1rem;
+  cursor:pointer;transition:all .3s ease;font-weight:500;letter-spacing:1px;display:flex;align-items:center;gap:8px
+}
+.btn-play:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(150,120,200,0.3)}
+.btn-play:active{transform:translateY(0)}
+.btn-play.playing{background:linear-gradient(135deg,#d4a8a0,#e0b8a8)}
+.btn-stop{
+  padding:12px 24px;border-radius:30px;border:1px solid rgba(180,160,210,0.3);
+  background:rgba(255,255,255,0.4);color:#8a7daa;font-size:.95rem;
+  cursor:pointer;transition:all .3s
+}
+.btn-stop:hover{background:rgba(255,255,255,0.6);border-color:rgba(180,160,210,0.5)}
+.btn-modify{
+  padding:8px 16px;border-radius:20px;border:1px solid rgba(180,160,210,0.25);
+  background:rgba(255,255,255,0.35);color:#8a7daa;font-size:.8rem;
+  cursor:pointer;transition:all .3s;display:none
+}
+.btn-modify:hover{background:rgba(255,255,255,0.55)}
+.breathing-overlay{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 50% 50%,rgba(168,142,196,0.06) 0%,transparent 60%);
+  opacity:0;transition:opacity .8s
+}
+.breathing-overlay.active{opacity:1;animation:breathe 6s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(1.08);opacity:.8}}
+.status-bar{display:flex;justify-content:center;gap:20px;padding:8px 0 4px;flex-wrap:wrap}
+.status-item{font-size:.75rem;color:#b0a0c8;display:flex;align-items:center;gap:4px}
+.status-dot{width:6px;height:6px;border-radius:50%;background:#c0b0d0;display:inline-block}
+.status-dot.on{background:#8ab8d8;animation:pulse 2s infinite}
+.status-dot.blocked{background:#e0b8a8}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.audio-hint{font-size:.7rem;color:#b8a8d0;text-align:center;padding:2px 0 6px;letter-spacing:.3px}
+footer{text-align:center;padding:8px;position:relative;z-index:1;color:#b0a0c8;font-size:.75rem;letter-spacing:.5px}
+</style>
+</head>
+<body>
+<canvas id="particle-canvas"></canvas>
+<div class="breathing-overlay" id="breathingOverlay"></div>
+<div class="container">
+  <header>
+    <h1>⋆｡°✩ 解压音效馆 ✩°｡⋆</h1>
+    <p>AI多智能体音效疗愈平台 · 为你的情绪找到声音</p>
+  </header>
+  <section class="emotion-section glass">
+    <div class="label"><span class="emoji">🌿</span> 告诉我你的心情，我为你调配音效</div>
+    <div class="emotion-tags" id="emotionTags">
+      <span class="emotion-tag" data-emotion="烦躁">😣 烦躁</span>
+      <span class="emotion-tag" data-emotion="疲惫">😴 疲惫</span>
+      <span class="emotion-tag" data-emotion="失眠">🌙 失眠</span>
+      <span class="emotion-tag" data-emotion="低落">💧 低落</span>
+      <span class="emotion-tag" data-emotion="专注">🎯 专注</span>
+      <span class="emotion-tag" data-emotion="放松">🕊️ 放松</span>
+    </div>
+    <div class="emotion-input-row">
+      <input type="text" id="customEmotion" placeholder="或输入你的感受…… 如：焦虑、平静、压力大" />
+      <button class="btn-recommend" id="btnRecommend">✨ AI推荐</button>
+    </div>
+  </section>
+  <div class="workspace">
+    <section class="mixer-panel glass">
+      <div class="panel-title"><span class="emoji">🎚️</span> 多轨混音面板</div>
+      <div class="track-list" id="trackList"></div>
+      <div class="status-bar" id="statusBar">
+        <span class="status-item"><span class="status-dot" id="statusDot"></span> <span id="statusText">待机中</span></span>
+        <span class="status-item">🎵 <span id="activeTrackCount">0</span>/<span id="totalTrackCount">12</span> 轨</span>
+      </div>
+    </section>
+    <section class="ai-panel glass">
+      <div class="panel-title"><span class="emoji">💬</span> 愈疗智能体</div>
+      <div class="ai-chat" id="aiChat">
+        <div class="ai-message system"><span class="text">🌷 你好，我是你的愈疗音效师。<br>告诉我你的情绪，我为你推荐最适合的声音配方。</span></div>
+      </div>
+    </section>
+  </div>
+  <section class="duration-panel glass">
+    <div class="panel-title"><span class="emoji">⏱️</span> 播放时长设置</div>
+    <div class="duration-options" id="durationOptions">
+      <span class="duration-opt" data-minutes="10">10分钟</span>
+      <span class="duration-opt" data-minutes="15">15分钟</span>
+      <span class="duration-opt" data-minutes="20">20分钟</span>
+      <span class="duration-opt" data-minutes="30">30分钟</span>
+      <span class="duration-opt" data-minutes="45">45分钟</span>
+      <span class="duration-opt" data-minutes="60">60分钟</span>
+      <span class="duration-opt" data-minutes="0">♾️ 无限循环</span>
+    </div>
+    <div class="duration-custom-row">
+      <span style="font-size:.82rem;color:#8a7daa">自定义：</span>
+      <input type="number" id="customMinutes" min="1" max="999" value="" placeholder="30" />
+      <span class="unit">分钟</span>
+      <span class="hint">（留空则使用上方选中时长）</span>
+    </div>
+    <div class="timer-display" id="timerDisplay">
+      <div class="timer-col"><span class="timer-label">已播放</span><span class="timer-num" id="elapsedDisplay">00:00</span></div>
+      <span style="color:#d0c0e0;font-size:1.2rem">/</span>
+      <div class="timer-col"><span class="timer-label">总时长</span><span class="timer-num" id="totalDisplay">--:--</span></div>
+      <span style="color:#d0c0e0;font-size:1.2rem">|</span>
+      <div class="timer-col"><span class="timer-label">剩余</span><span class="timer-num" id="remainingDisplay">--:--</span></div>
+    </div>
+    <div style="text-align:center;margin-top:2px"><button class="btn-modify" id="btnModifyTime">✏️ 修改剩余时长</button></div>
+  </section>
+  <section class="controls glass">
+    <button class="btn-play" id="btnPlay">▶ 沉浸播放</button>
+    <button class="btn-stop" id="btnStop">⏹ 停止</button>
+  </section>
+  <div class="audio-hint" id="audioHint">🔇 点击「沉浸播放」后浏览器将请求音频权限，请允许页面发声</div>
+  <footer>⋆｡°✩ 温柔地听 · 慢慢地愈 ✩°｡⋆</footer>
+</div>
+
+<script>
+// ================================================================
+//  解压音效馆 · 音频引擎
+//  MP3 音频加载版 — 使用 HTML Audio 标签播放真实录音素材
+//  
+//  【音频路径】
+//  所有音频统一使用绝对路径：/audio/xxx.mp3
+//  将12个MP3文件放入网站根目录下的 audio/ 目录即可
+//  彻底移除所有外部网络音频外链
+//  
+//  【跨域通信】
+//  通过 postMessage 实现 iframe 双向通信
+//  接收父页面（Coze智能体）情绪指令，自动匹配播放音效
+//  用户手动调整混音后，实时回传当前配置至父页面
+//  
+//  架构：全局唯一 AudioContext（仅用于连接 GainNode 实现音量控制与淡出）
+//  每个音效创建独立 HTML Audio 对象，通过 MediaElementSource 连接至混音总线
+//  独立启停、独立音量、无缝循环，互不干扰
+//  
+//  作为独立子模块设计：无全局变量污染，全部代码封装在 IIFE 内
+//  可嵌入主项目弹窗，与游戏、对话等子智能体共存
+// ================================================================
+;(function() {
+'use strict';
+
+// ================================================================
+//  AudioEngine — MP3 音频加载版
+//  全局唯一 AudioContext，用户手势后初始化
+//  每个音轨：独立 HTMLAudioElement → MediaElementSource → GainNode → MasterGain → destination
+//  任意单轨可独立发声，多轨叠加互不干扰
+// ================================================================
+class AudioEngine {
+  constructor() {
+    this.ctx = null;
+    this.masterGain = null;
+    this.tracks = {};    // { id: { audio, source, gainNode } }
+    this._initialized = false;
+  }
+
+  /**
+   * 获取音频文件路径
+   * 所有音频统一使用绝对路径 /audio/xxx.mp3
+   * 无任何外部网络音频外链
+   */
+  _getAudioPath(id) {
+    return '/audio/' + id + '.mp3';
+  }
+
+  /** 用户手势调用，创建或恢复 AudioContext */
+  init() {
+    if (this.ctx) {
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+      return;
+    }
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.masterGain = this.ctx.createGain();
+    this.masterGain.gain.value = 0.65;
+    this.masterGain.connect(this.ctx.destination);
+    this._initialized = true;
+  }
+
+  /** 启动一个音轨，创建独立 HTML Audio 对象 */
+  startTrack(id, vol) {
+    this.init();
+    // 如果已存在同名轨，先停掉重建
+    if (this.tracks[id]) this.stopTrack(id);
+
+    var cfg = this.trackConfigs[id];
+    if (!cfg) return;
+
+    var path = this._getAudioPath(id);
+    var audio = new Audio(path);
+    audio.loop = true;
+    audio.preload = 'auto';
+
+    // 容错处理：音频丢失时仅显示柔和提示，页面绝不崩溃
+    audio.addEventListener('error', function() {
+      var hint = document.getElementById('audioHint');
+      if (hint) {
+        hint.textContent = '⚠️ 音效「' + (cfg.name || id) + '」音频文件未找到，请确保 /audio/ 目录下存在对应 MP3 文件';
+        hint.style.color = '#d4a8a0';
+        setTimeout(function() {
+          if (hint) {
+            hint.textContent = '🔊 部分音效文件缺失，但不影响其他音效播放';
+            hint.style.color = '#b8a8d0';
+          }
+        }, 5000);
+      }
+    });
+
+    // 加载成功时清除错误提示
+    audio.addEventListener('canplay', function() {
+      var hint = document.getElementById('audioHint');
+      if (hint && hint.textContent.indexOf('⚠️') !== -1) {
+        hint.textContent = '🔊 所有音效已就绪，尽情聆听吧';
+        hint.style.color = '#8ab8d8';
+      }
+    });
+
+    // 通过 MediaElementSource 连接至 AudioContext 实现音量/淡出控制
+    var source = this.ctx.createMediaElementSource(audio);
+    var gainNode = this.ctx.createGain();
+    gainNode.gain.value = vol !== undefined ? vol : 0.6;
+    source.connect(gainNode);
+    gainNode.connect(this.masterGain);
+
+    // 开始播放（浏览器自动播放策略由用户手势保证）
+    audio.play().catch(function() {
+      // 静默处理自动播放拦截
+    });
+
+    this.tracks[id] = { audio: audio, source: source, gainNode: gainNode };
+  }
+
+  /** 设置音量 */
+  setTrackVolume(id, vol) {
+    if (this.tracks[id]) {
+      this.tracks[id].gainNode.gain.value = vol;
+    }
+  }
+
+  /** 停止单个音轨，不影响其他音轨 */
+  stopTrack(id) {
+    var t = this.tracks[id];
+    if (!t) return;
+    try { t.audio.pause(); } catch(e) {}
+    t.audio.currentTime = 0;
+    try { t.source.disconnect(); } catch(e) {}
+    try { t.gainNode.disconnect(); } catch(e) {}
+    delete this.tracks[id];
+  }
+
+  /** 停止所有音轨 */
+  stopAll() {
+    Object.keys(this.tracks).forEach(function(id) {
+      this.stopTrack(id);
+    }.bind(this));
+  }
+
+  /** 平滑淡出后停止 */
+  fadeOutAndStop(duration, callback) {
+    if (duration === undefined) duration = 1.5;
+    if (!this.masterGain) {
+      if (callback) callback();
+      return;
+    }
+    var now = this.ctx.currentTime;
+    this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
+    this.masterGain.gain.linearRampToValueAtTime(0, now + duration);
+    var self = this;
+    setTimeout(function() {
+      self.stopAll();
+      self.masterGain.gain.value = 0.65;
+      if (callback) callback();
+    }, duration * 1000 + 50);
+  }
+
+  // ================================================================
+  //  音效配置表
+  //  每个音效对应一个独立 MP3 文件，路径统一为 /audio/xxx.mp3
+  //  文件名标注在每行注释中，方便替换素材时对照
+  // ================================================================
+  trackConfigs = {
+    // 🌧️ 雨声 — 对应 /audio/rain.mp3
+    rain:       { name: '🌧️ 雨声',   mp3: 'rain.mp3' },
+    // 🌊 海浪 — 对应 /audio/ocean.mp3
+    ocean:      { name: '🌊 海浪',   mp3: 'ocean.mp3' },
+    // 🍃 晚风 — 对应 /audio/wind.mp3
+    wind:       { name: '🍃 晚风',   mp3: 'wind.mp3' },
+    // 🌲 森林 — 对应 /audio/forest.mp3
+    forest:     { name: '🌲 森林',   mp3: 'forest.mp3' },
+    // ☕ 咖啡厅 — 对应 /audio/cafe.mp3
+    cafe:       { name: '☕ 咖啡厅', mp3: 'cafe.mp3' },
+    // 💧 流水 — 对应 /audio/water.mp3
+    water:      { name: '💧 流水',   mp3: 'water.mp3' },
+    // 🔔 冥想 — 对应 /audio/meditation.mp3
+    meditation: { name: '🔔 冥想',   mp3: 'meditation.mp3' },
+    // 🦗 夏夜 — 对应 /audio/crickets.mp3
+    crickets:   { name: '🦗 夏夜',   mp3: 'crickets.mp3' },
+    // 🎐 风铃 — 对应 /audio/chimes.mp3
+    chimes:     { name: '🎐 风铃',   mp3: 'chimes.mp3' },
+    // 🤍 白噪音 — 对应 /audio/white.mp3
+    white:      { name: '🤍 白噪音', mp3: 'white.mp3' },
+    // 🩷 粉噪音 — 对应 /audio/pink.mp3
+    pink:       { name: '🩷 粉噪音', mp3: 'pink.mp3' },
+    // 🤎 棕噪音 — 对应 /audio/brown.mp3
+    brown:      { name: '🤎 棕噪音', mp3: 'brown.mp3' },
+  };
+
+  getTrackIds() {
+    return Object.keys(this.trackConfigs);
+  }
+}
+
+// ================================================================
+//  Particle System
+// ================================================================
+class ParticleSystem {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.particles = [];
+    this.mouseX = -1000;
+    this.mouseY = -1000;
+    this.breathing = false;
+    this.resize();
+    window.addEventListener('resize', function() { this.resize(); }.bind(this));
+    canvas.addEventListener('mousemove', function(e) {
+      var r = canvas.getBoundingClientRect();
+      this.mouseX = e.clientX - r.left;
+      this.mouseY = e.clientY - r.top;
+    }.bind(this));
+    canvas.addEventListener('mouseleave', function() {
+      this.mouseX = -1000;
+      this.mouseY = -1000;
+    }.bind(this));
+    this.init();
+    this.animate();
+  }
+  resize() {
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+  }
+  init() {
+    this.particles = [];
+    var c = Math.min(60, Math.floor(window.innerWidth * 0.04));
+    for (var i = 0; i < c; i++) {
+      this.particles.push({
+        x: Math.random() * this.canvas.width,
+        y: Math.random() * this.canvas.height,
+        r: 2 + Math.random() * 4,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3 - 0.1,
+        alpha: 0.15 + Math.random() * 0.25,
+        hue: 220 + Math.random() * 60
+      });
+    }
+  }
+  animate() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    var t = Date.now() * 0.001;
+    for (var i = 0; i < this.particles.length; i++) {
+      var p = this.particles[i];
+      p.x += p.vx + Math.sin(t * 0.2 + p.x * 0.01) * 0.15;
+      p.y += p.vy + Math.cos(t * 0.15 + p.y * 0.01) * 0.1;
+      if (p.x < -20) p.x = this.canvas.width + 20;
+      if (p.x > this.canvas.width + 20) p.x = -20;
+      if (p.y < -20) p.y = this.canvas.height + 20;
+      if (p.y > this.canvas.height + 20) p.y = -20;
+      var dx = this.mouseX - p.x;
+      var dy = this.mouseY - p.y;
+      var dist = Math.sqrt(dx * dx + dy * dy);
+      var mi = 0;
+      if (dist < 120) {
+        mi = (1 - dist / 120) * 0.8;
+        p.x -= dx * 0.008;
+        p.y -= dy * 0.008;
+      }
+      var bs = 1;
+      if (this.breathing) bs = 1 + Math.sin(t * 0.6) * 0.3;
+      var r = p.r * bs + mi * 3;
+      this.ctx.beginPath();
+      this.ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      this.ctx.fillStyle = 'hsla(' + p.hue + ',50%,75%,' + (p.alpha + mi * 0.3) + ')';
+      this.ctx.fill();
+      if (mi > 0.1) {
+        this.ctx.beginPath();
+        this.ctx.arc(p.x, p.y, r * 2.5, 0, Math.PI * 2);
+        this.ctx.fillStyle = 'hsla(' + p.hue + ',60%,80%,' + (mi * 0.12) + ')';
+        this.ctx.fill();
+      }
+    }
+    requestAnimationFrame(function() { this.animate(); }.bind(this));
+  }
+  setBreathing(b) { this.breathing = b; }
+}
+
+// ================================================================
+//  App — 所有交互逻辑完全保留
+// ================================================================
+var audio = new AudioEngine();
+var particles = new ParticleSystem(document.getElementById('particle-canvas'));
+
+var emotionTags = document.querySelectorAll('.emotion-tag');
+var customEmotion = document.getElementById('customEmotion');
+var btnRecommend = document.getElementById('btnRecommend');
+var trackList = document.getElementById('trackList');
+var aiChat = document.getElementById('aiChat');
+var btnPlay = document.getElementById('btnPlay');
+var btnStop = document.getElementById('btnStop');
+var statusDot = document.getElementById('statusDot');
+var statusText = document.getElementById('statusText');
+var activeTrackCount = document.getElementById('activeTrackCount');
+var totalTrackCount = document.getElementById('totalTrackCount');
+var breathingOverlay = document.getElementById('breathingOverlay');
+var audioHint = document.getElementById('audioHint');
+var durationOpts = document.querySelectorAll('.duration-opt');
+var customMinutes = document.getElementById('customMinutes');
+var elapsedDisplay = document.getElementById('elapsedDisplay');
+var totalDisplay = document.getElementById('totalDisplay');
+var remainingDisplay = document.getElementById('remainingDisplay');
+var btnModifyTime = document.getElementById('btnModifyTime');
+
+var currentEmotion = '';
+var activeTracks = {};
+var isPlaying = false;
+var selectedMinutes = 10;
+var timerInterval = null;
+var playbackStartTime = 0;
+var elapsedSeconds = 0;
+var totalSeconds = 0;
+var pausedSeconds = 0;
+var isPaused = false;
+
+var emotionPresets = {
+  '烦躁': { tracks: ['rain','ocean','brown','chimes'],
+    msg: '烦躁的时候，让雨声和海浪慢慢包裹你。\n试试闭上眼睛，把注意力放在呼吸上——\n吸气时想象把所有烦躁呼出，呼气时让身体沉入大地。' },
+  '疲惫': { tracks: ['brown','meditation','ocean','forest'],
+    msg: '辛苦啦，你做得已经够多了。\n让深沉的棕噪音和颂钵的共振为你卸下疲惫。\n现在你只需要放松，什么都不用想。' },
+  '失眠': { tracks: ['rain','ocean','brown','crickets'],
+    msg: '夜深了，让雨声和夏夜的虫鸣陪你入梦。\n放下手机，感受身体慢慢沉入床垫。\n每一次呼吸，都是离睡眠更近一步。' },
+  '低落': { tracks: ['forest','chimes','meditation','water'],
+    msg: '低落也是生活的一部分，没关系的。\n让森林的呼吸和流水的温柔为你带来一丝暖意。\n你值得被温柔对待，包括被你自己。' },
+  '专注': { tracks: ['white','cafe','water','wind'],
+    msg: '进入心流状态，让白噪音和咖啡厅的轻柔为你屏蔽一切干扰。\n设定一个25分钟的番茄钟，专注当下。\n你比自己想象的更有力量。' },
+  '放松': { tracks: ['ocean','forest','rain','meditation'],
+    msg: '一切都很好，此刻你只需要放松。\n想象自己躺在沙滩上，听着海浪的声音。\n阳光温暖，微风轻柔，一切都刚刚好。' },
+};
+var fallbackMsgs = {
+  '焦虑': { tracks: ['rain','brown','meditation','ocean'],
+    msg: '焦虑的时候，试试让低频的声音包围你。\n雨声有天然的镇定效果，加上颂钵的共振，\n能让你的心率慢慢平稳下来。' },
+  '平静': { tracks: ['ocean','forest','water','chimes'],
+    msg: '你在寻找内心那片宁静的湖。\n让海浪和流水的声音带你回到那里。\n平静是一种力量，你已经拥有了它。' },
+  '压力': { tracks: ['brown','rain','ocean','meditation'],
+    msg: '压力大的时候，更需要暂停一下。\n让深沉的棕噪音和持续的雨声，\n帮你把紧绷的弦慢慢松开。' },
+  'emo': { tracks: ['forest','chimes','meditation','water'],
+    msg: '把情绪交给声音吧。\n你不需要马上好起来，\n只需要在这里，安静地待一会儿。' },
+  '开心': { tracks: ['forest','chimes','ocean','cafe'],
+    msg: '开心的时候，让声音陪你一起庆祝。\n风铃的清脆，森林的生机，\n都像你此刻的心情一样闪闪发光。' },
+};
+function getFallback(key) {
+  for (var k in fallbackMsgs) {
+    if (key.includes(k)) return fallbackMsgs[k];
+  }
+  return { tracks: ['rain','ocean','forest','chimes'],
+    msg: '每一种情绪都值得被倾听。\n让自然的声音为你营造一个安全的空间。\n在这里，你只需要做你自己。' };
+}
+
+// --- Duration ---
+durationOpts.forEach(function(opt) {
+  opt.addEventListener('click', function() {
+    durationOpts.forEach(function(o) { o.classList.remove('active'); });
+    opt.classList.add('active');
+    selectedMinutes = parseInt(opt.dataset.minutes);
+    customMinutes.value = '';
+    updateTimerDisplay();
+  });
+});
+durationOpts[0].classList.add('active');
+
+function getTotalSeconds() {
+  if (customMinutes.value && parseInt(customMinutes.value) > 0) return parseInt(customMinutes.value) * 60;
+  return selectedMinutes * 60;
+}
+
+function formatTime(sec) {
+  if (sec === Infinity || sec === null || sec === undefined) return '♾️ ∞';
+  var m = Math.floor(sec / 60);
+  var s = Math.floor(sec % 60);
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function updateTimerDisplay() {
+  var total = getTotalSeconds();
+  totalSeconds = total;
+  elapsedDisplay.textContent = formatTime(elapsedSeconds);
+  if (total === 0) {
+    totalDisplay.textContent = '♾️ ∞';
+    remainingDisplay.textContent = '♾️ ∞';
+  } else {
+    totalDisplay.textContent = formatTime(total);
+    remainingDisplay.textContent = formatTime(Math.max(0, total - elapsedSeconds));
+  }
+}
+
+function startTimer() {
+  elapsedSeconds = 0;
+  pausedSeconds = 0;
+  isPaused = false;
+  playbackStartTime = Date.now();
+  updateTimerDisplay();
+  timerInterval = setInterval(function() {
+    if (isPaused) return;
+    elapsedSeconds = pausedSeconds + (Date.now() - playbackStartTime) / 1000;
+    updateTimerDisplay();
+    var total = getTotalSeconds();
+    if (total > 0 && elapsedSeconds >= total) smoothStop();
+  }, 200);
+}
+
+function pauseTimer() {
+  if (!isPaused && isPlaying) {
+    pausedSeconds += (Date.now() - playbackStartTime) / 1000;
+    isPaused = true;
+    statusText.textContent = '已暂停';
+    btnPlay.textContent = '▶ 继续播放';
+  }
+}
+
+function resumeTimer() {
+  if (isPaused) {
+    playbackStartTime = Date.now();
+    isPaused = false;
+    statusText.textContent = '播放中';
+    btnPlay.textContent = '⏸ 暂停播放';
+  }
+}
+
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  elapsedSeconds = 0;
+  isPaused = false;
+  updateTimerDisplay();
+}
+
+function smoothStop() {
+  if (!isPlaying) return;
+  isPlaying = false;
+  statusText.textContent = '播放结束 ♡';
+  statusDot.classList.remove('on');
+  btnPlay.textContent = '▶ 沉浸播放';
+  btnPlay.classList.remove('playing');
+  breathingOverlay.classList.remove('active');
+  particles.setBreathing(false);
+  btnModifyTime.style.display = 'none';
+  audio.fadeOutAndStop(2, function() {
+    stopTimer();
+    addAIMessage('🌙 播放已结束，愿你带着平静的心情继续接下来的时光。\n随时可以重新选择情绪，再次开始～');
+    sendMixerState();
+  });
+}
+
+btnModifyTime.addEventListener('click', function() {
+  var input = prompt('✏️ 修改剩余播放时长（分钟）\n输入数字，如：5、15、30\n输入 0 切换为无限循环', '');
+  if (input === null) return;
+  var val = parseInt(input);
+  if (isNaN(val) || val < 0) { alert('请输入有效数字'); return; }
+  if (val === 0) {
+    durationOpts.forEach(function(o) { o.classList.remove('active'); });
+    totalSeconds = 0;
+    remainingDisplay.textContent = '♾️ ∞';
+    totalDisplay.textContent = '♾️ ∞';
+    addAIMessage('♾️ 已切换为无限循环模式，让声音一直陪伴你。');
+    return;
+  }
+  customMinutes.value = Math.ceil((elapsedSeconds + val * 60) / 60);
+  durationOpts.forEach(function(o) { o.classList.remove('active'); });
+  totalSeconds = elapsedSeconds + val * 60;
+  totalDisplay.textContent = formatTime(totalSeconds);
+  remainingDisplay.textContent = formatTime(val * 60);
+  addAIMessage('✏️ 已调整剩余时长为 ' + val + ' 分钟，继续安心聆听吧～');
+});
+
+// --- Build track UI ---
+function buildTrackUI() {
+  trackList.innerHTML = '';
+  var ids = audio.getTrackIds();
+  totalTrackCount.textContent = ids.length;
+  ids.forEach(function(id) {
+    var cfg = audio.trackConfigs[id];
+    var item = document.createElement('div');
+    item.className = 'track-item';
+    item.dataset.trackId = id;
+    var toggle = document.createElement('div');
+    toggle.className = 'track-toggle on';
+    toggle.dataset.trackId = id;
+    var name = document.createElement('span');
+    name.className = 'track-name';
+    name.textContent = cfg.name;
+    var slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'track-slider';
+    slider.min = 0;
+    slider.max = 100;
+    slider.value = 60;
+    slider.dataset.trackId = id;
+    var volLabel = document.createElement('span');
+    volLabel.className = 'track-volume';
+    volLabel.textContent = '60';
+    volLabel.dataset.trackId = id;
+    item.appendChild(toggle);
+    item.appendChild(name);
+    item.appendChild(slider);
+    item.appendChild(volLabel);
+    trackList.appendChild(item);
+    activeTracks[id] = { enabled: true, volume: 0.6, element: item, toggle: toggle, slider: slider, volLabel: volLabel };
+    toggle.addEventListener('click', function() { toggleTrack(id); });
+    slider.addEventListener('input', function() {
+      var v = parseInt(slider.value) / 100;
+      activeTracks[id].volume = v;
+      volLabel.textContent = Math.round(v * 100);
+      if (activeTracks[id].enabled && isPlaying) audio.setTrackVolume(id, v);
+      sendMixerState();
+    });
+  });
+  updateStatus();
+}
+
+function toggleTrack(id) {
+  var t = activeTracks[id];
+  if (!t) return;
+  t.enabled = !t.enabled;
+  t.toggle.classList.toggle('on', t.enabled);
+  t.element.classList.toggle('playing', t.enabled);
+  if (isPlaying) {
+    if (t.enabled) audio.startTrack(id, t.volume);
+    else audio.stopTrack(id);
+  }
+  updateStatus();
+  sendMixerState();
+}
+
+function updateStatus() {
+  var c = 0;
+  for (var k in activeTracks) {
+    if (activeTracks[k].enabled) c++;
+  }
+  activeTrackCount.textContent = c;
+}
+
+// --- AI Chat ---
+function addAIMessage(text, system) {
+  var div = document.createElement('div');
+  div.className = system ? 'ai-message system' : 'ai-message';
+  div.innerHTML = system ? '<span class="text">' + text + '</span>' : '<span class="avatar">💫</span><span class="text">' + text + '</span>';
+  aiChat.appendChild(div);
+  aiChat.scrollTop = aiChat.scrollHeight;
+}
+
+function addAITyping() {
+  var div = document.createElement('div');
+  div.className = 'ai-message ai-typing';
+  div.id = 'aiTyping';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  aiChat.appendChild(div);
+  aiChat.scrollTop = aiChat.scrollHeight;
+}
+
+function removeAITyping() {
+  var el = document.getElementById('aiTyping');
+  if (el) el.remove();
+}
+
+// --- Emotion ---
+emotionTags.forEach(function(tag) {
+  tag.addEventListener('click', function() {
+    emotionTags.forEach(function(t) { t.classList.remove('active'); });
+    tag.classList.add('active');
+    currentEmotion = tag.dataset.emotion;
+    customEmotion.value = '';
+  });
+});
+
+function doRecommend(emotion) {
+  if (!emotion) return;
+  currentEmotion = emotion;
+  if (isPlaying) stopPlayback();
+  // 重置所有音轨为开启
+  for (var id in activeTracks) {
+    activeTracks[id].enabled = true;
+    activeTracks[id].toggle.classList.add('on');
+    activeTracks[id].element.classList.add('playing');
+    activeTracks[id].volume = 0.6;
+    activeTracks[id].slider.value = 60;
+    activeTracks[id].volLabel.textContent = '60';
+  }
+  var preset = emotionPresets[emotion];
+  if (!preset) preset = getFallback(emotion);
+  // 关闭所有，再按推荐开启
+  for (var id in activeTracks) {
+    activeTracks[id].enabled = false;
+    activeTracks[id].toggle.classList.remove('on');
+    activeTracks[id].element.classList.remove('playing');
+  }
+  preset.tracks.forEach(function(id) {
+    if (activeTracks[id]) {
+      activeTracks[id].enabled = true;
+      activeTracks[id].toggle.classList.add('on');
+      activeTracks[id].element.classList.add('playing');
+    }
+  });
+  updateStatus();
+  addAITyping();
+  setTimeout(function() {
+    removeAITyping();
+    addAIMessage('🌷 检测到你的情绪：' + emotion + '\n\n' + preset.msg + '\n\n我已为你挑选了 ' + preset.tracks.length + ' 组音效，\n下面设置好播放时长，点击「沉浸播放」开始体验吧 🎧');
+    sendMixerState();
+  }, 800 + Math.random() * 600);
+}
+
+btnRecommend.addEventListener('click', function() {
+  var c = customEmotion.value.trim();
+  if (c) {
+    emotionTags.forEach(function(t) { t.classList.remove('active'); });
+    doRecommend(c);
+  } else if (currentEmotion) {
+    doRecommend(currentEmotion);
+  } else {
+    addAITyping();
+    setTimeout(function() {
+      removeAITyping();
+      addAIMessage('💫 你可以先告诉我你的心情——点击上面的情绪标签，或者直接输入你的感受，我为你定制音效方案～');
+    }, 400);
+  }
+});
+
+customEmotion.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') btnRecommend.click();
+});
+
+// --- Playback ---
+function startPlayback() {
+  if (isPaused && isPlaying) {
+    resumeTimer();
+    return;
+  }
+  if (isPlaying) {
+    pauseTimer();
+    return;
+  }
+  var anyOn = false;
+  for (var k in activeTracks) {
+    if (activeTracks[k].enabled) { anyOn = true; break; }
+  }
+  if (!anyOn) {
+    addAIMessage('💡 请先在混音面板开启至少一个音轨，或者让我为你推荐一套方案～');
+    return;
+  }
+  // 首次：用户手势初始化 AudioContext
+  if (!audio.ctx) {
+    audio.init();
+    audioHint.textContent = '🔊 音频已激活，尽情聆听吧';
+    audioHint.style.color = '#8ab8d8';
+  }
+  isPlaying = true;
+  // 逐个启动开启的音轨
+  for (var id in activeTracks) {
+    if (activeTracks[id].enabled) audio.startTrack(id, activeTracks[id].volume);
+  }
+  btnPlay.textContent = '⏸ 暂停播放';
+  btnPlay.classList.add('playing');
+  statusDot.classList.add('on');
+  statusText.textContent = '播放中';
+  breathingOverlay.classList.add('active');
+  particles.setBreathing(true);
+  btnModifyTime.style.display = 'inline-block';
+  startTimer();
+  var total = getTotalSeconds();
+  var durText = total === 0 ? '无限循环' : formatTime(total);
+  addAIMessage('🎧 正在播放你的专属音效方案……\n设置时长：' + durText + '\n让声音的涟漪轻轻包裹你，放下所有的紧张。');
+  sendMixerState();
+}
+
+function stopPlayback() {
+  if (!isPlaying && !isPaused) return;
+  isPlaying = false;
+  isPaused = false;
+  audio.stopAll();
+  stopTimer();
+  btnPlay.textContent = '▶ 沉浸播放';
+  btnPlay.classList.remove('playing');
+  statusDot.classList.remove('on');
+  statusText.textContent = '待机中';
+  breathingOverlay.classList.remove('active');
+  particles.setBreathing(false);
+  btnModifyTime.style.display = 'none';
+  elapsedSeconds = 0;
+  updateTimerDisplay();
+  addAIMessage('⏹ 播放已停止。随时可以重新开始～');
+  sendMixerState();
+}
+
+btnPlay.addEventListener('click', startPlayback);
+btnStop.addEventListener('click', stopPlayback);
+
+// ================================================================
+//  postMessage 跨域 iframe 双向通信
+// ================================================================
+
+/**
+ * 发送当前混音配置给父页面
+ * 用户手动调整开关、音量、播放状态后实时回传
+ */
+function sendMixerState() {
+  // 仅在 iframe 中运行时才发送
+  if (window.parent === window) return;
+  var state = {};
+  for (var id in activeTracks) {
+    state[id] = {
+      enabled: activeTracks[id].enabled,
+      volume: activeTracks[id].volume
+    };
+  }
+  window.parent.postMessage({
+    type: 'mixerState',
+    source: 'soundAgent',
+    tracks: state,
+    isPlaying: isPlaying,
+    isPaused: isPaused,
+    currentEmotion: currentEmotion,
+    selectedMinutes: selectedMinutes
+  }, '*');
+}
+
+/**
+ * 接收父页面消息
+ * 支持以下指令格式：
+ *
+ * 1. 情绪推荐
+ *    { type: 'emotion', emotion: '烦躁' }
+ *    → 自动匹配情绪预设，勾选对应音效
+ *
+ * 2. 自定义音效数组
+ *    { type: 'recommend', tracks: ['rain', 'ocean', 'brown'], emotion: '自定义' }
+ *    → 直接应用指定音效列表
+ *
+ * 3. 播放控制
+ *    { type: 'play' }            → 开始播放
+ *    { type: 'stop' }            → 停止播放
+ *
+ * 4. 单轨控制
+ *    { type: 'toggleTrack', id: 'rain', enabled: true }
+ *    { type: 'setVolume', id: 'rain', volume: 0.5 }
+ */
+window.addEventListener('message', function(e) {
+  var data = e.data;
+  if (!data || typeof data !== 'object') return;
+
+  switch (data.type) {
+    case 'emotion':
+      // 父页面传入情绪标签，自动匹配推荐
+      if (data.emotion) {
+        doRecommend(data.emotion);
+      }
+      break;
+
+    case 'recommend':
+      // 父页面传入自定义音效数组
+      if (data.tracks && Array.isArray(data.tracks)) {
+        // 停止播放（如果有）
+        if (isPlaying) stopPlayback();
+        // 重置所有音轨为关闭
+        for (var id in activeTracks) {
+          activeTracks[id].enabled = false;
+          activeTracks[id].toggle.classList.remove('on');
+          activeTracks[id].element.classList.remove('playing');
+        }
+        // 按传入数组开启指定音轨
+        data.tracks.forEach(function(id) {
+          if (activeTracks[id]) {
+            activeTracks[id].enabled = true;
+            activeTracks[id].toggle.classList.add('on');
+            activeTracks[id].element.classList.add('playing');
+          }
+        });
+        currentEmotion = data.emotion || '自定义';
+        updateStatus();
+        sendMixerState();
+        addAIMessage('🎯 已收到外部推荐的音效方案，已为你勾选 ' + data.tracks.length + ' 组音效，点击「沉浸播放」开始聆听～');
+      }
+      break;
+
+    case 'play':
+      // 父页面要求开始播放
+      startPlayback();
+      break;
+
+    case 'stop':
+      // 父页面要求停止播放
+      stopPlayback();
+      break;
+
+    case 'toggleTrack':
+      // 父页面控制单轨开关
+      if (data.id && activeTracks[data.id]) {
+        var t = activeTracks[data.id];
+        var shouldEnable = data.enabled !== undefined ? data.enabled : !t.enabled;
+        if (t.enabled !== shouldEnable) {
+          toggleTrack(data.id);
+        }
+      }
+      break;
+
+    case 'setVolume':
+      // 父页面设置单轨音量
+      if (data.id && activeTracks[data.id] && data.volume !== undefined) {
+        var vol = Math.max(0, Math.min(1, data.volume));
+        activeTracks[data.id].volume = vol;
+        activeTracks[data.id].slider.value = Math.round(vol * 100);
+        activeTracks[data.id].volLabel.textContent = Math.round(vol * 100);
+        if (activeTracks[data.id].enabled && isPlaying) {
+          audio.setTrackVolume(data.id, vol);
+        }
+        sendMixerState();
+      }
+      break;
+
+    case 'setDuration':
+      // 父页面设置播放时长（分钟）
+      if (data.minutes !== undefined) {
+        var mins = parseInt(data.minutes);
+        if (!isNaN(mins) && mins >= 0) {
+          durationOpts.forEach(function(o) { o.classList.remove('active'); });
+          if (data.minutes === 0) {
+            selectedMinutes = 0;
+            durationOpts.forEach(function(o) {
+              if (parseInt(o.dataset.minutes) === 0) o.classList.add('active');
+            });
+          } else {
+            selectedMinutes = mins;
+            customMinutes.value = mins;
+          }
+          updateTimerDisplay();
+        }
+      }
+      break;
+  }
+}, false);
+
+// 页面加载完成后通知父页面本子智能体已就绪
+if (window.parent !== window) {
+  window.parent.postMessage({
+    type: 'soundAgentReady',
+    source: 'soundAgent',
+    message: '解压音效馆子智能体已就绪'
+  }, '*');
+}
+
+// --- Init ---
+buildTrackUI();
+addAIMessage('💫 你好，我是你的愈疗音效师。\n告诉我你现在的心情，我来为你调配最治愈的声音配方。', true);
+setTimeout(function() {
+  addAITyping();
+  setTimeout(function() {
+    removeAITyping();
+    addAIMessage('🌿 点击上方的心情标签，或输入你的感受，\n我会为你推荐音效方案。\n\n⏱️ 设置好播放时长，点击「沉浸播放」开始聆听～\n（首次播放需要浏览器授权音频权限）');
+  }, 1000);
+}, 800);
+console.log('🌈 解压音效馆 — MP3音频加载版，12种音效全部就绪，postMessage通信已接入');
+
+})();
+</script>
+</body>
+</html>
